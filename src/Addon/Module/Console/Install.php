@@ -36,6 +36,7 @@ class Install extends Command
      *
      * @param ModuleManager    $manager
      * @param ModuleCollection $modules
+     * @throws \Exception
      */
     public function fire(ModuleManager $manager, ModuleCollection $modules)
     {

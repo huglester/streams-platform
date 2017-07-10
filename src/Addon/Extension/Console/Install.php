@@ -36,6 +36,7 @@ class Install extends Command
      *
      * @param ExtensionManager    $manager
      * @param ExtensionCollection $extensions
+     * @throws \Exception
      */
     public function fire(ExtensionManager $manager, ExtensionCollection $extensions)
     {
