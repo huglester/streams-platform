@@ -5,8 +5,10 @@ use Anomaly\Streams\Platform\Collection\CacheCollection;
 use Anomaly\Streams\Platform\Entry\Contract\EntryInterface;
 use Anomaly\Streams\Platform\Entry\EntryModel;
 use Anomaly\Streams\Platform\Stream\StreamModel;
+use Anomaly\Streams\Platform\Traits\Hookable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\JoinClause;
+use Illuminate\Foundation\Bus\DispatchesJobs;
 
 /**
  * Class EloquentQueryBuilder
@@ -17,6 +19,9 @@ use Illuminate\Database\Query\JoinClause;
  */
 class EloquentQueryBuilder extends Builder
 {
+
+    use Hookable;
+    use DispatchesJobs;
 
     /**
      * Runtime cache.
@@ -219,9 +224,9 @@ class EloquentQueryBuilder extends Builder
 
         if ($query->orders === null) {
             if ($model instanceof AssignmentModel) {
-                $query->orderBy('sort_order', 'ASC');
-            } elseif ($model instanceof StreamModel) {
-                $query->orderBy('sort_order', 'ASC');
+                $query->orderBy('streams_assignments.sort_order', 'ASC');
+            } elseif ($model instanceof StreamModel && env('INSTALLED')) { // Ensure migrations are complete.
+                $query->orderBy('streams_streams.sort_order', 'ASC');
             } elseif ($model instanceof EntryInterface) {
                 if ($model->getStream()->isSortable()) {
                     $query->orderBy('sort_order', 'ASC');
@@ -266,5 +271,39 @@ class EloquentQueryBuilder extends Builder
                 }
             }
         }
+    }
+
+    /**
+     * Select the default columns.
+     *
+     * This is helpful when using addSelect
+     * elsewhere like in a hook/criteria and
+     * that select ends up being all you select.
+     *
+     * @return $this
+     */
+    public function selectDefault()
+    {
+        if (!$this->query->columns && $this->query->from) {
+            $this->query->select($this->query->from . '.*');
+        }
+
+        return $this;
+    }
+
+    /**
+     * Add hookable catch to the query builder system.
+     *
+     * @param string $method
+     * @param array $parameters
+     * @return mixed
+     */
+    public function __call($method, $parameters)
+    {
+        if ($this->hasHook($hook = snake_case($method))) {
+            return $this->call($hook, $parameters);
+        }
+
+        return parent::__call($method, $parameters);
     }
 }

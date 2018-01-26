@@ -42,7 +42,11 @@ class Template
      * @param Filesystem  $files
      * @param Application $application
      */
-    public function __construct(Factory $view, Filesystem $files, Application $application)
+    public function __construct(
+        Factory $view,
+        Filesystem $files,
+        Application $application
+    )
     {
         $this->view        = $view;
         $this->files       = $files;
@@ -52,10 +56,9 @@ class Template
     /**
      * Render a string template.
      *
-     * @param             $template
-     * @param  array      $payload
-     * @return string
-     * @throws \Exception
+     * @param       $template
+     * @param array $payload
+     * @return \Illuminate\Contracts\View\View
      */
     public function render($template, array $payload = [])
     {
@@ -69,7 +72,13 @@ class Template
             $this->files->put($path . '.twig', $template);
         }
 
-        return $this->view->make('storage::' . str_replace($this->application->getStoragePath(), '', $path), $payload);
+        return $this->view->make(
+            'storage::' . ltrim(
+                str_replace($this->application->getStoragePath(), '', $path),
+                '\\/'
+            ),
+            $payload
+        );
     }
 
     /**
@@ -80,6 +89,8 @@ class Template
      */
     public function path($template)
     {
-        return $this->application->getStoragePath('support/parsed/' . md5($template));
+        return $this->application
+            ->getStoragePath('support/parsed/' . md5($template));
     }
+
 }

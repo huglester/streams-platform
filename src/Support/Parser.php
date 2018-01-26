@@ -144,15 +144,18 @@ class Parser
     protected function requestData()
     {
         $request = [
-            'path'  => $this->request->path(),
-            'input' => $this->request->input(),
-            'uri'   => $this->request->getRequestUri(),
-            'query' => $this->request->getQueryString(),
+            'url'      => $this->request->url(),
+            'path'     => $this->request->path(),
+            'root'     => $this->request->root(),
+            'input'    => $this->request->input(),
+            'full_url' => $this->request->fullUrl(),
+            'uri'      => $this->request->getRequestUri(),
+            'query'    => $this->request->getQueryString(),
         ];
 
         if ($route = $this->request->route()) {
             $request['route'] = [
-                'uri'                      => $route->getUri(),
+                'uri'                      => $route->uri(),
                 'parameters'               => $route->parameters(),
                 'parameters.to_urlencoded' => array_map(
                     function ($parameter) {

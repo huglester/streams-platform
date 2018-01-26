@@ -295,6 +295,14 @@ interface EntryInterface
     public function getRelation($relation);
 
     /**
+     * Eager load relations on the model.
+     *
+     * @param  $relations
+     * @return $this
+     */
+    public function load($relations);
+
+    /**
      * Get the translatable flag.
      *
      * @return bool
@@ -385,6 +393,13 @@ interface EntryInterface
      * @return string
      */
     public function getRouterName();
+
+    /**
+     * Get the query builder name.
+     *
+     * @return string
+     */
+    public function getQueryBuilderName();
 
     /**
      * Return whether the title column is

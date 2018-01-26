@@ -1,5 +1,6 @@
 <?php namespace Anomaly\Streams\Platform\Addon;
 
+use Anomaly\Streams\Platform\Addon\AddonPresenter;
 use Anomaly\Streams\Platform\Traits\FiresCallbacks;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Foundation\Bus\DispatchesJobs;
@@ -68,7 +69,7 @@ class Addon implements PresentableInterface, Arrayable
      */
     public function getPresenter()
     {
-        return app()->make('Anomaly\Streams\Platform\Addon\AddonPresenter', ['object' => $this]);
+        return app()->make(AddonPresenter::class, ['object' => $this]);
     }
 
     /**
@@ -78,7 +79,13 @@ class Addon implements PresentableInterface, Arrayable
      */
     public function newServiceProvider()
     {
-        return app()->make($this->getServiceProvider(), [app(), $this]);
+        return app()->make(
+            $this->getServiceProvider(),
+            [
+                'container' => app(),
+                'addon'     => $this,
+            ]
+        );
     }
 
     /**
@@ -237,6 +244,41 @@ class Addon implements PresentableInterface, Arrayable
     }
 
     /**
+     * Get the composer json contents.
+     *
+     * @return mixed|null
+     */
+    public function getComposerLock()
+    {
+        $json = base_path('composer.lock');
+
+        if (!file_exists($json)) {
+            return null;
+        }
+
+        $json = json_decode(file_get_contents($json));
+
+        return array_first(
+            $json->packages,
+            function (\stdClass $package) {
+                return $package->name == $this->getPackageName();
+            }
+        );
+    }
+
+    /**
+     * Return the package name.
+     *
+     * @return string
+     */
+    public function getPackageName()
+    {
+        return $this->getVendor() . '/' . $this->getSlug() . '-' . $this->getType();
+    }
+
+    /**
+     * Sets the path.
+     *
      * @param $path
      * @return $this
      */

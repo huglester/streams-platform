@@ -9,9 +9,9 @@ use Illuminate\Contracts\Events\Dispatcher;
 /**
  * Class AddonManager
  *
- * @link    http://pyrocms.com/
- * @author  PyroCMS, Inc. <support@pyrocms.com>
- * @author  Ryan Thompson <ryan@pyrocms.com>
+ * @link   http://pyrocms.com/
+ * @author PyroCMS, Inc. <support@pyrocms.com>
+ * @author Ryan Thompson <ryan@pyrocms.com>
  */
 class AddonManager
 {
@@ -75,12 +75,12 @@ class AddonManager
     /**
      * Create a new AddonManager instance.
      *
-     * @param AddonPaths      $paths
-     * @param AddonLoader     $loader
-     * @param ModuleModel     $modules
-     * @param Container       $container
-     * @param Dispatcher      $dispatcher
-     * @param ExtensionModel  $extensions
+     * @param AddonPaths $paths
+     * @param AddonLoader $loader
+     * @param ModuleModel $modules
+     * @param Container $container
+     * @param Dispatcher $dispatcher
+     * @param ExtensionModel $extensions
      * @param AddonIntegrator $integrator
      * @param AddonCollection $addons
      */
@@ -102,6 +102,7 @@ class AddonManager
         $this->integrator = $integrator;
         $this->dispatcher = $dispatcher;
         $this->extensions = $extensions;
+        $this->loader     = $loader;
     }
 
     /**
@@ -118,6 +119,7 @@ class AddonManager
                 return $enabled;
             }
         );
+
         $this->container->bind(
             'streams::addons.installed',
             function () use ($installed) {
@@ -127,19 +129,20 @@ class AddonManager
 
         $paths = $this->paths->all();
 
-        /*
-         * First load all the addons
-         * so they're available.
+        /**
+         * Autoload testing addons.
          */
-        foreach ($paths as $path) {
-            $this->loader->load($path);
+        if (env('APP_ENV') === 'testing' && $testing = $this->paths->testing()) {
+
+            foreach ($testing as $path) {
+                $this->loader->load($path);
+            }
+
+            $this->loader->register();
         }
 
-        $this->loader->register();
-
         /*
-         * Then register all of the addons now
-         * that they're all PSR autoloaded.
+         * Register all of the addons.
          */
         foreach ($paths as $path) {
 

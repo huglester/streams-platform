@@ -10,279 +10,284 @@ use Anomaly\Streams\Platform\View\ViewOverrides;
 use Illuminate\Console\Application;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\View\Factory;
-use Illuminate\Http\Request;
-use Twig_Error_Loader;
-use InvalidArgumentException;
 use Illuminate\Filesystem\Filesystem;
+use Illuminate\Http\Request;
 use Illuminate\View\ViewFinderInterface;
 use Mobile_Detect;
 
 /**
  * Basic loader using absolute paths.
  */
-class Loader extends \TwigBridge\Twig\Loader
+class Loader extends OriginalLoader
 {
-	/**
-	 * @var \Illuminate\Filesystem\Filesystem
-	 */
-	protected $files;
 
-	/**
-	 * @var \Illuminate\View\ViewFinderInterface
-	 */
-	protected $finder;
+    /**
+     * @var \Illuminate\Filesystem\Filesystem
+     */
+    protected $files;
 
-	/**
-	 * @var string Twig file extension.
-	 */
-	protected $extension;
+    /**
+     * @var \Illuminate\View\ViewFinderInterface
+     */
+    protected $finder;
 
-	/**
-	 * @var array Template lookup cache.
-	 */
-	protected $cache = [];
+    /**
+     * @var string Twig file extension.
+     */
+    protected $extension;
 
-	/**
-	 * The view factory.
-	 *
-	 * @var Factory
-	 */
-	protected $view;
+    /**
+     * @var array Template lookup cache.
+     */
+    protected $cache = [];
 
-	/**
-	 * The agent utility.
-	 *
-	 * @var Mobile_Detect
-	 */
-	protected $agent;
+    /**
+     * The view factory.
+     *
+     * @var Factory
+     */
+    protected $view;
 
-	/**
-	 * The event dispatcher.
-	 *
-	 * @var Dispatcher
-	 */
-	protected $events;
+    /**
+     * The agent utility.
+     *
+     * @var Mobile_Detect
+     */
+    protected $agent;
 
-	/**
-	 * The current theme.
-	 *
-	 * @var Theme|null
-	 */
-	protected $theme;
+    /**
+     * The event dispatcher.
+     *
+     * @var Dispatcher
+     */
+    protected $events;
 
-	/**
-	 * The active module.
-	 *
-	 * @var Module|null
-	 */
-	protected $module;
+    /**
+     * The current theme.
+     *
+     * @var Theme|null
+     */
+    protected $theme;
 
-	/**
-	 * The addon collection.
-	 *
-	 * @var AddonCollection
-	 */
-	protected $addons;
+    /**
+     * The active module.
+     *
+     * @var Module|null
+     */
+    protected $module;
 
-	/**
-	 * The request object.
-	 *
-	 * @var Request
-	 */
-	protected $request;
+    /**
+     * The addon collection.
+     *
+     * @var AddonCollection
+     */
+    protected $addons;
 
-	/**
-	 * The view overrides collection.
-	 *
-	 * @var ViewOverrides
-	 */
-	protected $overrides;
+    /**
+     * The request object.
+     *
+     * @var Request
+     */
+    protected $request;
 
-	/**
-	 * The application instance.
-	 *
-	 * @var Application
-	 */
-	protected $application;
+    /**
+     * The view overrides collection.
+     *
+     * @var ViewOverrides
+     */
+    protected $overrides;
 
-	/**
-	 * The view mobile overrides.
-	 *
-	 * @var ViewMobileOverrides
-	 */
-	protected $mobiles;
+    /**
+     * The application instance.
+     *
+     * @var Application
+     */
+    protected $application;
 
-	protected $mobile;
+    /**
+     * The view mobile overrides.
+     *
+     * @var ViewMobileOverrides
+     */
+    protected $mobiles;
 
-	/**
-	 * Loader constructor.
-	 * @param Filesystem $files
-	 * @param ViewFinderInterface $finder
-	 * @param string $extension
-	 * @param Factory $view
-	 * @param Mobile_Detect $agent
-	 * @param Dispatcher $events
-	 * @param AddonCollection $addons
-	 * @param ViewOverrides $overrides
-	 * @param Request $request
-	 * @param ViewMobileOverrides $mobiles
-	 */
-	public function __construct(
-		Filesystem $files,
-		ViewFinderInterface $finder,
-		$extension = 'twig',
-		Factory $view,
-		Mobile_Detect $agent,
-		Dispatcher $events,
-		AddonCollection $addons,
-		ViewOverrides $overrides,
-		Request $request,
-		ViewMobileOverrides $mobiles
-		)
-	{
-		$this->view        = $view;
-		$this->agent       = $agent;
-		$this->events      = $events;
-		$this->addons      = $addons;
-		$this->mobiles     = $mobiles;
-		$this->request     = $request;
-		$this->overrides   = $overrides;
+    protected $mobile;
 
-		$area = $request->segment(1) == 'admin' ? 'admin' : 'standard';
+    /**
+     * Loader constructor.
+     *
+     * @param Filesystem $files
+     * @param ViewFinderInterface $finder
+     * @param string $extension
+     * @param Factory $view
+     * @param Mobile_Detect $agent
+     * @param Dispatcher $events
+     * @param AddonCollection $addons
+     * @param ViewOverrides $overrides
+     * @param Request $request
+     * @param ViewMobileOverrides $mobiles
+     */
+    public function __construct(
+        Filesystem $files,
+        ViewFinderInterface $finder,
+        $extension = 'twig',
+        Factory $view,
+        Mobile_Detect $agent,
+        Dispatcher $events,
+        AddonCollection $addons,
+        ViewOverrides $overrides,
+        Request $request,
+        ViewMobileOverrides $mobiles
+    ) {
+        $this->view      = $view;
+        $this->agent     = $agent;
+        $this->events    = $events;
+        $this->addons    = $addons;
+        $this->mobiles   = $mobiles;
+        $this->request   = $request;
+        $this->overrides = $overrides;
 
-		$this->theme  = $this->addons->themes->active($area);
-		$this->module = $this->addons->modules->active();
+        $area = $request->segment(1) == 'admin' ?: 'standard';
 
-		$this->mobile = $this->agent->isMobile();
+        $this->theme  = $this->addons->themes->active($area);
+        $this->module = $this->addons->modules->active();
 
-		parent::__construct($files, $finder, $extension);
-	}
+        $this->mobile = $this->agent->isMobile();
 
-	protected function getPath($name)
-	{
+        parent::__construct($files, $finder, $extension);
+    }
 
-		$mobile = $this->mobiles->get($this->theme->getNamespace(), []);
+    /**
+     * Gets the path.
+     *
+     * @param      string   $name   The name
+     * @return     boolean  The path.
+     */
+    protected function getPath($name)
+    {
+        $mobile = $this->mobiles->get($this->theme->getNamespace(), []);
+        $result = false;
 
-		$_path = false;
+        /**
+         * Merge system configured overrides
+         * with the overrides from the addon.
+         */
+        $overrides = array_merge(
+            $this->overrides->get($this->theme->getNamespace(), []),
+            config('streams.overrides', [])
+        );
 
-		/**
-		 * Merge system configured overrides
-		 * with the overrides from the addon.
-		 */
-		$overrides = array_merge(
-			$this->overrides->get($this->theme->getNamespace(), []),
-			config('streams.overrides', [])
-		);
+        $name = str_replace('theme::', $this->theme->getNamespace() . '::', $name);
 
-		$name = str_replace('theme::', $this->theme->getNamespace() . '::', $name);
+        if ($this->mobile && $path = array_get($mobile, $name)) {
+            $result = $path;
+        } elseif ($path = array_get($overrides, $name)) {
+            $result = $path;
+        }
 
-		if ($this->mobile && $path = array_get($mobile, $name, null)) {
-			$_path = $path;
-		} elseif ($path = array_get($overrides, $name, null)) {
-			$_path = $path;
-		}
+        if ($this->module) {
+            $mobile    = $this->mobiles->get($this->module->getNamespace(), []);
+            $overrides = $this->overrides->get($this->module->getNamespace(), []);
 
-		if ($this->module) {
+            if ($this->mobile && $path = array_get($mobile, $name)) {
+                $result = $path;
+            } elseif ($path = array_get($overrides, $name)) {
+                $result = $path;
+            } elseif ($path = array_get(config('streams.overrides'), $name)) {
+                $result = $path;
+            }
+        }
 
-			$mobile    = $this->mobiles->get($this->module->getNamespace(), []);
-			$overrides = $this->overrides->get($this->module->getNamespace(), []);
+        if ($path = $this->getOverloadPath($name)) {
+            return $path;
+        }
 
-			if ($this->mobile && $path = array_get($mobile, $name, null)) {
-				$_path = $path;
-			} elseif ($path = array_get($overrides, $name, null)) {
-				$_path = $path;
-			} elseif ($path = array_get(config('streams.overrides'), $name, null)) {
-				$_path = $path;
-			}
-		}
+        return $result;
+    }
 
-		if ($overload = $this->getOverloadPath($name)) {
-			$_path = $overload;
-		}
+    /**
+     * Gets the overload path.
+     *
+     * @param      string  $name   The name
+     * @return     string  The overload path.
+     */
+    protected function getOverloadPath($name)
+    {
+        /*
+         * We can only overload namespaced
+         * views right now.
+         */
+        if (!str_contains($name, '::')) {
+            return null;
+        }
 
-		return $_path;
-	}
+        /*
+         * Split the view into it's
+         * namespace and path.
+         */
+        list($namespace, $path) = explode('::', $name);
 
-	public function getOverloadPath($name)
-	{
+        $override = null;
+        $path     = str_replace('.', '/', $path);
 
-		/*
-		 * We can only overload namespaced
-		 * views right now.
-		 */
-		if (!str_contains($name, '::')) {
-			return null;
-		}
+        /*
+         * If the view is a streams view then
+         * it's real easy to guess what the
+         * override path should be.
+         */
+        if ($namespace == 'streams') {
+            $path = $this->theme->getNamespace("streams/{$path}");
+        }
 
-		/*
-		 * Split the view into it's
-		 * namespace and path.
-		 */
-		list($namespace, $path) = explode('::', $name);
+        /*
+         * If the view uses a dot syntax namespace then
+         * transform it all into the override view path.
+         */
+        if ($addon = $this->addons->get($namespace)) {
+            $override = $this->theme->getNamespace(
+                "addons/{$addon->getVendor()}/{$addon->getSlug()}-{$addon->getType()}/{$path}"
+            );
+        }
 
-		$override = null;
+        if ($this->view->exists($override)) {
+            return $override;
+        }
 
-		$path = str_replace('.', '/', $path);
+        return null;
+    }
 
-		/*
-		 * If the view is a streams view then
-		 * it's real easy to guess what the
-		 * override path should be.
-		 */
-		if ($namespace == 'streams') {
-			$path = $this->theme->getNamespace('streams/' . $path);
-		}
+    /**
+     * Return path to template without the need for the extension.
+     *
+     * @param string $name Template file name or path.
+     * @throws \Twig_Error_Loader
+     * @return string Path to template
+     */
+    public function findTemplate($name)
+    {
+        if ($this->files->exists($name)) {
+            return $name;
+        }
 
-		/*
-		 * If the view uses a dot syntax namespace then
-		 * transform it all into the override view path.
-		 */
-		if ($addon = $this->addons->get($namespace)) {
-			$override = $this->theme->getNamespace(
-				"addons/{$addon->getVendor()}/{$addon->getSlug()}-{$addon->getType()}/" . $path
-			);
-		}
+        $name = $this->normalizeName($name);
 
-		if ($this->view->exists($override)) {
-			return $override;
-		}
+        if ($cached = array_get($this->cache, $name)) {
+            return $cached;
+        }
 
-		return null;
-	}
+        $file = $name;
 
-	/**
-	 * Return path to template without the need for the extension.
-	 *
-	 * @param string $name Template file name or path.
-	 *
-	 * @throws \Twig_Error_Loader
-	 * @return string Path to template
-	 */
-	public function findTemplate($name)
-	{
-		if ($this->files->exists($name)) {
-			return $name;
-		}
+        if ($path = $this->getPath($name)) {
+            $file = $path;
+        }
 
-		$name = $this->normalizeName($name);
+        try {
+            $this->cache[$name] = $this->finder->find($file);
+        } catch (\InvalidArgumentException $e) {
+            throw new \Twig_Error_Loader($e->getMessage());
+        }
 
-		if (isset($this->cache[$name])) {
-			return $this->cache[$name];
-		}
-
-		$file = $name;
-		if(($path = $this->getPath($name)))
-		{
-			$file = $path;
-		}
-
-		try {
-			$this->cache[$name] = $this->finder->find($file);
-		} catch (InvalidArgumentException $ex) {
-			throw new Twig_Error_Loader($ex->getMessage());
-		}
-
-		return $this->cache[$name];
-	}
+        return array_get($this->cache, $name);
+    }
 
 }

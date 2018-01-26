@@ -24,35 +24,6 @@ return [
             },
         ],
     ],
-    'business'        => [
-        'type' => 'anomaly.field_type.text',
-    ],
-    'phone'           => [
-        'type' => 'anomaly.field_type.text',
-    ],
-    'address'         => [
-        'type' => 'anomaly.field_type.text',
-    ],
-    'address2'        => [
-        'type' => 'anomaly.field_type.text',
-    ],
-    'city'            => [
-        'type' => 'anomaly.field_type.text',
-    ],
-    'state'           => [
-        'type' => 'anomaly.field_type.state',
-    ],
-    'postal_code'     => [
-        'type' => 'anomaly.field_type.text',
-    ],
-    'country'         => [
-        'type'   => 'anomaly.field_type.country',
-        'config' => [
-            'top_options' => [
-                'US',
-            ],
-        ],
-    ],
     'timezone'        => [
         'env'    => 'APP_TIMEZONE',
         'bind'   => 'app.timezone',
@@ -160,11 +131,20 @@ return [
     'per_page'        => [
         'env'      => 'RESULTS_PER_PAGE',
         'bind'     => 'streams::system.per_page',
-        'type'     => 'anomaly.field_type.integer',
+        'type'     => 'anomaly.field_type.select',
         'required' => true,
         'config'   => [
             'default_value' => 15,
-            'min'           => 5,
+            'options'       => [
+                5   => 5,
+                10  => 10,
+                15  => 15,
+                25  => 25,
+                50  => 50,
+                75  => 75,
+                100 => 100,
+                150 => 150,
+            ],
         ],
     ],
     'default_locale'  => [
@@ -251,7 +231,10 @@ return [
         'required' => true,
         'config'   => [
             'default_value' => function (Repository $config) {
-                return 'noreply@' . array_get(parse_url($config->get('app.url')), 'host');
+
+                $host = array_get(parse_url($config->get('app.url')), 'host');
+
+                return 'noreply@' . (str_contains($host, '.') ? $host : $host . '.com');
             },
         ],
     ],

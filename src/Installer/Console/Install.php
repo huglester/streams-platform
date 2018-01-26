@@ -63,7 +63,7 @@ class Install extends Command
      * @param Dispatcher   $events
      * @param AddonManager $manager
      */
-    public function fire(Dispatcher $events, AddonManager $manager)
+    public function handle(Dispatcher $events, AddonManager $manager)
     {
         $data = new Collection();
 
@@ -108,11 +108,11 @@ class Install extends Command
             )
         );
 
-        $this->dispatch(new LoadBaseMigrations($installers));
-        $this->dispatch(new LoadBaseSeeders($installers));
-
         $this->dispatch(new LoadModuleSeeders($installers));
         $this->dispatch(new LoadExtensionSeeders($installers));
+
+        $this->dispatch(new LoadBaseMigrations($installers));
+        $this->dispatch(new LoadBaseSeeders($installers));
 
         $this->dispatch(new RunInstallers($installers, $this));
     }

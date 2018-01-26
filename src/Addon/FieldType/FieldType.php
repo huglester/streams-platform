@@ -5,7 +5,9 @@ use Anomaly\Streams\Platform\Entry\Contract\EntryInterface;
 use Anomaly\Streams\Platform\Model\EloquentModel;
 use Anomaly\Streams\Platform\Support\Decorator;
 use Anomaly\Streams\Platform\Support\Presenter;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Collection;
 
 /**
  * Class FieldType
@@ -150,7 +152,7 @@ class FieldType extends Addon
      *
      * @var null|string
      */
-    protected $class = null;
+    protected $class = 'form-control';
 
     /**
      * The database column type.
@@ -230,10 +232,17 @@ class FieldType extends Addon
     protected $query = null;
 
     /**
+     * The field type criteria.
+     *
+     * @var null|string
+     */
+    protected $criteria;
+
+    /**
      * Return a config value.
      *
      * @param        $key
-     * @param  null  $default
+     * @param  null $default
      * @return mixed
      */
     public function config($key, $default = null)
@@ -295,6 +304,19 @@ class FieldType extends Addon
     public function getRules()
     {
         return $this->rules;
+    }
+
+    /**
+     * Set rules.
+     *
+     * @param  array $rules
+     * @return $this
+     */
+    public function setRules(array $rules)
+    {
+        $this->rules = $rules;
+
+        return $this;
     }
 
     /**
@@ -409,7 +431,7 @@ class FieldType extends Addon
      * Get a config value.
      *
      * @param        $key
-     * @param  null  $default
+     * @param  null $default
      * @return mixed
      */
     public function configGet($key, $default = null)
@@ -485,6 +507,31 @@ class FieldType extends Addon
     public function getValue()
     {
         return $this->value;
+    }
+
+    /**
+     * Return if the type
+     * has a value or not.
+     *
+     * @return bool
+     */
+    public function hasValue()
+    {
+        $value = $this->getValue();
+
+        if ($value === null) {
+            return false;
+        }
+
+        if (empty($value)) {
+            return false;
+        }
+
+        if ($value instanceof Collection) {
+            return $value->isNotEmpty();
+        }
+
+        return true;
     }
 
     /**
@@ -707,10 +754,10 @@ class FieldType extends Addon
         return array_filter(
             array_merge(
                 [
+                    'class'           => $this->getClass(),
                     'data-field'      => $this->getField(),
                     'data-field_name' => $this->getFieldName(),
                     'data-provides'   => $this->getNamespace(),
-                    'class'           => $this->getClass() ?: 'form-control',
                 ],
                 $this->attributes
             )
@@ -938,7 +985,10 @@ class FieldType extends Addon
      */
     public function render($payload = [])
     {
-        return view($this->getWrapperView(), array_merge($payload, ['field_type' => $this]))->render();
+        return view(
+            $this->getWrapperView(),
+            array_merge($payload, ['field_type' => $this])
+        )->render();
     }
 
     /**
@@ -999,7 +1049,7 @@ class FieldType extends Addon
         }
 
         if (!class_exists($this->presenter)) {
-            $this->presenter = 'Anomaly\Streams\Platform\Addon\FieldType\FieldTypePresenter';
+            $this->presenter = FieldTypePresenter::class;
         }
 
         return app()->make($this->presenter, ['object' => $this]);
@@ -1035,7 +1085,7 @@ class FieldType extends Addon
         }
 
         if (!class_exists($this->modifier)) {
-            $this->modifier = 'Anomaly\Streams\Platform\Addon\FieldType\FieldTypeModifier';
+            $this->modifier = FieldTypeModifier::class;
         }
 
         $modifier = app()->make($this->modifier);
@@ -1062,7 +1112,7 @@ class FieldType extends Addon
         }
 
         if (!class_exists($this->accessor)) {
-            $this->accessor = 'Anomaly\Streams\Platform\Addon\FieldType\FieldTypeAccessor';
+            $this->accessor = FieldTypeAccessor::class;
         }
 
         $accessor = app()->make($this->accessor);
@@ -1097,7 +1147,7 @@ class FieldType extends Addon
         }
 
         if (!class_exists($this->schema)) {
-            $this->schema = 'Anomaly\Streams\Platform\Addon\FieldType\FieldTypeSchema';
+            $this->schema = FieldTypeSchema::class;
         }
 
         return app()->make($this->schema, ['fieldType' => $this]);
@@ -1128,7 +1178,7 @@ class FieldType extends Addon
         }
 
         if (!class_exists($this->parser)) {
-            $this->parser = 'Anomaly\Streams\Platform\Addon\FieldType\FieldTypeParser';
+            $this->parser = FieldTypeParser::class;
         }
 
         return app()->make($this->parser, ['fieldType' => $this]);
@@ -1159,10 +1209,10 @@ class FieldType extends Addon
         }
 
         if (!class_exists($this->query)) {
-            $this->query = 'Anomaly\Streams\Platform\Addon\FieldType\FieldTypeQuery';
+            $this->query = FieldTypeQuery::class;
         }
 
-        return app()->make($this->query, [$this]);
+        return app()->make($this->query, ['fieldType' => $this]);
     }
 
     /**
@@ -1174,6 +1224,44 @@ class FieldType extends Addon
     public function setQuery($query)
     {
         $this->query = $query;
+
+        return $this;
+    }
+
+    /**
+     * Get the criteria.
+     *
+     * @param Builder $query
+     * @return FieldTypeQuery
+     */
+    public function getCriteria(Builder $query)
+    {
+        if (!$this->criteria) {
+            $this->criteria = get_class($this) . 'Criteria';
+        }
+
+        if (!class_exists($this->criteria)) {
+            $this->criteria = FieldTypeCriteria::class;
+        }
+
+        return app()->make(
+            $this->criteria,
+            [
+                'fieldType' => $this,
+                'query'     => $query,
+            ]
+        );
+    }
+
+    /**
+     * Set the criteria class.
+     *
+     * @param $criteria
+     * @return $this
+     */
+    public function setCriteria($criteria)
+    {
+        $this->criteria = $criteria;
 
         return $this;
     }

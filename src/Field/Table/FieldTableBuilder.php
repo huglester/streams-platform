@@ -1,5 +1,6 @@
 <?php namespace Anomaly\Streams\Platform\Field\Table;
 
+use Anomaly\Streams\Platform\Field\Table\Filter\TypeFilterOptions;
 use Anomaly\Streams\Platform\Stream\Contract\StreamInterface;
 use Anomaly\Streams\Platform\Ui\Table\TableBuilder;
 use Illuminate\Database\Eloquent\Builder;
@@ -54,6 +55,11 @@ class FieldTableBuilder extends TableBuilder
                 'slug',
             ],
         ],
+        'type'   => [
+            'filter'      => 'select',
+            'options'     => TypeFilterOptions::class,
+            'placeholder' => 'streams::field.type.name',
+        ],
     ];
 
     /**
@@ -72,8 +78,7 @@ class FieldTableBuilder extends TableBuilder
         ],
         [
             'heading' => 'streams::field.type.name',
-            'wrapper' => '{value}::addon.name',
-            'value'   => 'entry.type',
+            'value'   => 'entry.type.title',
         ],
     ];
 
