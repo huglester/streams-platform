@@ -148,7 +148,7 @@ class Kernel extends \Illuminate\Foundation\Http\Kernel
         if (($hint === 'uri' || $hint === true) && preg_match($pattern, $uri, $matches)) {
 
             $_SERVER['ORIGINAL_REQUEST_URI'] = $uri;
-            $_SERVER['REQUEST_URI']          = preg_replace($pattern, '/', $uri);
+            // $_SERVER['REQUEST_URI']          = preg_replace($pattern, '/', $uri);
 
             define('LOCALE', $matches[1]);
 
@@ -197,7 +197,7 @@ class Kernel extends \Illuminate\Foundation\Http\Kernel
         if (preg_match($pattern, $uri, $matches)) {
 
             $_SERVER['ORIGINAL_REQUEST_URI'] = $uri;
-            $_SERVER['REQUEST_URI']          = preg_replace($pattern, '/admin', $uri);
+            // $_SERVER['REQUEST_URI']          = preg_replace($pattern, '/admin', $uri);
         }
     }
 }
