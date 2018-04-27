@@ -499,11 +499,19 @@ class FormBuilder
     /**
      * Add a field.
      *
-     * @param   $field
+     * @param       $field
+     * @param array $definition
+     * @return $this
      */
-    public function addField($field)
+    public function addField($field, array $definition = [])
     {
-        $this->fields[array_get($field, 'field')] = $field;
+        if (!$definition) {
+            $this->fields[array_get($field, 'field')] = $field;
+        } else {
+            $this->fields[$field] = $definition;
+        }
+
+        return $this;
     }
 
     /**
@@ -513,7 +521,7 @@ class FormBuilder
      */
     public function addFields(array $fields)
     {
-        $this->fields = array_merge($this->fields, $fields);
+        $this->fields = array_unique(array_merge($this->fields, $fields));
     }
 
     /**
@@ -748,6 +756,19 @@ class FormBuilder
     }
 
     /**
+     * Merge in additional sections.
+     *
+     * @param array $sections
+     * @return $this
+     */
+    public function mergeSections(array $sections)
+    {
+        $this->sections = array_merge($this->sections, $sections);
+
+        return $this;
+    }
+
+    /**
      * Add a section tab.
      *
      * @param        $section
@@ -772,6 +793,39 @@ class FormBuilder
         array_set($this->sections, "{$section}.tabs", $tabs);
 
         return $this;
+    }
+
+    /**
+     * Recursively prefix all section fields.
+     *
+     * @param      $prefix
+     * @param null $sections
+     * @return array|null
+     */
+    public function prefixSectionFields($prefix, $sections = null)
+    {
+        if (!$sections) {
+            $sections = &$this->sections;
+        }
+
+        if (!is_array($sections)) {
+            return $sections;
+        }
+
+        foreach ($sections as $key => &$value) {
+            if ($key === 'fields') {
+                $value = array_map(
+                    function ($field) use ($key, $prefix) {
+                        return $prefix . $field;
+                    },
+                    array_values($value)
+                );
+            } elseif (is_array($value)) {
+                $value = $this->prefixSectionFields($prefix, $value);
+            }
+        }
+
+        return $sections;
     }
 
     /**
@@ -1323,6 +1377,20 @@ class FormBuilder
             ->setAttribute($key, $value);
 
         return $this;
+    }
+
+    /**
+     * Get an attribute from the form's entry.
+     *
+     * @param      $key
+     * @param null $default
+     * @return mixed|null
+     */
+    public function getFormEntryAttribute($key, $default = null)
+    {
+        return $this
+            ->getFormEntry()
+            ->getAttribute($key, $default);
     }
 
     /**

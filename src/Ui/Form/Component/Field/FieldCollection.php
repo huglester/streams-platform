@@ -66,7 +66,7 @@ class FieldCollection extends Collection
      * Get a field.
      *
      * @param  mixed $key
-     * @param  null $default
+     * @param  null  $default
      * @return FieldType
      */
     public function get($key, $default = null)
@@ -162,22 +162,62 @@ class FieldCollection extends Collection
     }
 
     /**
+     * Return writable fields.
+     *
+     * @return FieldCollection
+     */
+    public function writable()
+    {
+        return $this->filter(
+            function ($item) {
+
+                /* @var FieldType $item */
+                return !$item->isReadonly();
+            }
+        );
+    }
+
+    /**
+     * Return readonly fields.
+     *
+     * @return FieldCollection
+     */
+    public function readonly()
+    {
+        return $this->filter(
+            function ($item) {
+
+                /* @var FieldType $item */
+                return $item->isReadonly();
+            }
+        );
+    }
+
+    /**
      * Return non-self handling fields.
      *
+     * @deprecated use autoHandling() - removing in 1.4
      * @return FieldCollection
      */
     public function allowed()
     {
-        $allowed = [];
+        return $this->autoHandling();
+    }
 
-        /* @var FieldType $item */
-        foreach ($this->items as $item) {
-            if (!$item->isDisabled() && !method_exists($item, 'handle')) {
-                $allowed[] = $item;
+    /**
+     * Return auto handling fields.
+     *
+     * @return FieldCollection
+     */
+    public function autoHandling()
+    {
+        return $this->filter(
+            function ($field) {
+
+                /* @var FieldType $field */
+                return !method_exists($field, 'handle');
             }
-        }
-
-        return new static($allowed);
+        );
     }
 
     /**
@@ -197,6 +237,38 @@ class FieldCollection extends Collection
         }
 
         return new static($selfHandling);
+    }
+
+    /**
+     * Return only savable fields.
+     *
+     * @return FieldCollection
+     */
+    public function savable()
+    {
+        return $this->filter(
+            function ($field) {
+
+                /* @var FieldType $field */
+                return $field->canSave();
+            }
+        );
+    }
+
+    /**
+     * Return only non-savable fields.
+     *
+     * @return FieldCollection
+     */
+    public function nonSavable()
+    {
+        return $this->filter(
+            function ($field) {
+
+                /* @var FieldType $field */
+                return !$field->canSave();
+            }
+        );
     }
 
     /**

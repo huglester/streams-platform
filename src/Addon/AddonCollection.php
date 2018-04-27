@@ -4,6 +4,13 @@ use Anomaly\Streams\Platform\Addon\Extension\Extension;
 use Anomaly\Streams\Platform\Addon\Module\Module;
 use Illuminate\Support\Collection;
 
+/**
+ * Class AddonCollection
+ *
+ * @link   http://pyrocms.com/
+ * @author PyroCMS, Inc. <support@pyrocms.com>
+ * @author Ryan Thompson <ryan@pyrocms.com>
+ */
 class AddonCollection extends Collection
 {
 
@@ -34,7 +41,9 @@ class AddonCollection extends Collection
     {
         return array_values(
             $this->map(
-                function (Addon $addon) use ($key) {
+                function ($addon) use ($key) {
+
+                    /* @var Addon $addon */
                     return $addon->getNamespace($key);
                 }
             )->all()
@@ -48,16 +57,29 @@ class AddonCollection extends Collection
      */
     public function core()
     {
-        $core = [];
+        return $this->filter(
+            function ($addon) {
 
-        /* @var Addon $item */
-        foreach ($this->items as $item) {
-            if ($item->isCore()) {
-                $core[] = $item;
+                /* @var Addon $addon */
+                return $addon->isCore();
             }
-        }
+        );
+    }
 
-        return self::make($core);
+    /**
+     * Return only non-core addons.
+     *
+     * @return AddonCollection
+     */
+    public function nonCore()
+    {
+        return $this->filter(
+            function ($addon) {
+
+                /* @var Addon $addon */
+                return !$addon->isCore();
+            }
+        );
     }
 
     /**
@@ -91,7 +113,7 @@ class AddonCollection extends Collection
         if (!$key) {
             return $default;
         }
-        
+
         if (!$addon = parent::get($key, $default)) {
             return $this->findBySlug($key);
         }
@@ -172,7 +194,9 @@ class AddonCollection extends Collection
     public function registered()
     {
         $this->map(
-            function (Addon $addon) {
+            function ($addon) {
+
+                /* @var Addon $addon */
                 $addon->fire('registered');
             }
         );
@@ -228,7 +252,10 @@ class AddonCollection extends Collection
     public function sort(callable $callback = null)
     {
         return parent::sort(
-            $callback ?: function (Addon $a, Addon $b) {
+            $callback ?: function ($a, $b) {
+
+                /* @var Addon $a */
+                /* @var Addon $b */
                 if ($a->getSlug() == $b->getSlug()) {
                     return 0;
                 }
@@ -246,7 +273,9 @@ class AddonCollection extends Collection
     public function installable()
     {
         return $this->filter(
-            function (Addon $addon) {
+            function ($addon) {
+
+                /* @var Addon $addon */
                 return in_array($addon->getType(), ['module', 'extension']);
             }
         );

@@ -48,6 +48,15 @@ interface EloquentRepositoryInterface
     public function findAll(array $ids);
 
     /**
+     * Find all by column value.
+     *
+     * @param $column
+     * @param $value
+     * @return EloquentCollection
+     */
+    public function findAllBy($column, $value);
+
+    /**
      * Find a trashed record by it's ID.
      *
      * @param $id
@@ -146,10 +155,10 @@ interface EloquentRepositoryInterface
      *
      * @param $key
      * @param $ttl
-     * @param $value
+     * @param null $value
      * @return mixed
      */
-    public function cache($key, $ttl, $value);
+    public function cache($key, $ttl, $value = null);
 
     /**
      * Flush the cache.

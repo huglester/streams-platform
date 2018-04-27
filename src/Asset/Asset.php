@@ -39,6 +39,15 @@ class Asset
     protected $collections = [];
 
     /**
+     * Loaded provisions. When tagging
+     * assets using "as:*" they will be
+     * added to the loaded array.
+     *
+     * @var array
+     */
+    protected $loaded = [];
+
+    /**
      * The URL generator.
      *
      * @var UrlGenerator
@@ -177,17 +186,69 @@ class Asset
      * @param             $collection
      * @param             $file
      * @param  array      $filters
+     * @param bool        $internal A flag telling the system
+     *                              this is an internal request
+     *                              and should be processed differently.
      * @return $this
      * @throws \Exception
      */
-    public function add($collection, $file, array $filters = [])
+    public function add($collection, $file, array $filters = [], $internal = false)
     {
         if (!isset($this->collections[$collection])) {
             $this->collections[$collection] = [];
         }
 
+        /**
+         * Check for named asset tags
+         * and mark as loaded if found.
+         */
+        $names = array_map(
+            function ($filter) {
+                return strtolower(preg_replace('/^as:/', '', $filter));
+            },
+            array_filter(
+                $filters,
+                function ($filter) {
+                    return starts_with($filter, 'as:');
+                }
+            )
+        );
+
+        /**
+         * Required assets should clear
+         * any that may already be loaded.
+         */
+        if ($internal == false && in_array('required', $filters)) {
+            $this->removeLoaded($names);
+        }
+
+        /**
+         * Check that we don't have any
+         * named assets that are loaded
+         * already unless it's a glob file.
+         */
+        if (
+            $internal == false
+            && !in_array('required', $filters)
+            && array_intersect_key(array_flip($names), $this->getLoaded())
+        ) {
+            return $this;
+        }
+
+        foreach ($names as $name) {
+            $this->addLoaded($name, $collection . '@' . $file);
+        }
+
+        /**
+         * Guess some common
+         * sense filters.
+         */
         $filters = array_unique(array_merge($filters, AssetGuesser::guess($file)));
 
+        /**
+         * Determine the actual
+         * path of the file.
+         */
         $file = $this->paths->realPath($file);
 
         /*
@@ -195,6 +256,7 @@ class Asset
          * file then add it normally.
          */
         if (starts_with($file, ['http', '//']) || file_exists($file)) {
+
             $this->collections[$collection][$file] = $filters;
 
             return $this;
@@ -205,6 +267,7 @@ class Asset
          * it to the collection and add the glob filter.
          */
         if (count(glob($file)) > 0) {
+
             $this->collections[$collection][$file] = array_merge($filters, ['glob']);
 
             return $this;
@@ -262,7 +325,7 @@ class Asset
     public function url($collection, array $filters = [], array $parameters = [], $secure = null)
     {
         if (!isset($this->collections[$collection])) {
-            $this->add($collection, $collection, $filters);
+            $this->add($collection, $collection, $filters, true);
         }
 
         if (!$path = $this->getPath($collection, $filters)) {
@@ -282,7 +345,7 @@ class Asset
     public function path($collection, array $filters = [])
     {
         if (!isset($this->collections[$collection])) {
-            $this->add($collection, $collection, $filters);
+            $this->add($collection, $collection, $filters, true);
         }
 
         return $this->request->getBasePath() . $this->getPath($collection, $filters);
@@ -298,7 +361,7 @@ class Asset
     public function asset($collection, array $filters = [])
     {
         if (!isset($this->collections[$collection])) {
-            $this->add($collection, $collection, $filters);
+            $this->add($collection, $collection, $filters, true);
         }
 
         return $this->path($collection, $filters);
@@ -713,6 +776,62 @@ class Asset
         }
 
         return false;
+    }
+
+    /**
+     * Mark an named asset as loaded.
+     *
+     * @param $name
+     * @param $asset
+     * @return $this
+     */
+    public function addLoaded($name, $asset)
+    {
+        $this->loaded[strtolower($name)] = $asset;
+
+        return $this;
+    }
+
+    /**
+     * Remove loaded names from collections.
+     *
+     * @param array $names
+     * @return $this
+     */
+    public function removeLoaded(array $names)
+    {
+        foreach ($names as $name) {
+
+            if ($this->isLoaded($name)) {
+
+                list($collection, $path) = explode('@', $this->loaded[$name]);
+
+                unset($this->collections[$collection][$this->paths->realPath($path)]);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Return if a named asset is loaded or not.
+     *
+     * @param $name
+     * @return bool
+     */
+    public function isLoaded($name)
+    {
+        return isset($this->loaded[strtolower($name)]);
+    }
+
+    /**
+     * Get the named and loaded assets.
+     *
+     * @return array
+     */
+    public function getLoaded()
+    {
+        return $this->loaded;
     }
 
     /**
