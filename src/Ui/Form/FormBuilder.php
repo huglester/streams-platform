@@ -154,6 +154,13 @@ class FormBuilder
     protected $readOnly = false;
 
     /**
+     * The parent form builder.
+     *
+     * @var null|FormBuilder
+     */
+    protected $parentBuilder = null;
+
+    /**
      * The form object.
      *
      * @var Form
@@ -333,6 +340,31 @@ class FormBuilder
     public function getFormPresenter()
     {
         return $this->form->getPresenter();
+    }
+
+    /**
+     * Touch the form entry.
+     *
+     * @return $this
+     */
+    public function touchFormEntry()
+    {
+        $entry = $this->getFormEntry();
+
+        if ($entry instanceof EloquentModel) {
+
+            $time = $entry->freshTimestamp();
+
+            if (!is_null($entry::UPDATED_AT) && !$entry->isDirty($entry::UPDATED_AT)) {
+                $entry->setUpdatedAt($time);
+            }
+
+            if (!$entry->exists && !$entry->isDirty($entry::CREATED_AT)) {
+                $entry->setCreatedAt($time);
+            }
+        }
+
+        return $this;
     }
 
     /**
@@ -521,7 +553,7 @@ class FormBuilder
      */
     public function addFields(array $fields)
     {
-        $this->fields = array_unique(array_merge($this->fields, $fields));
+        $this->fields = array_unique(array_merge($this->fields, $fields), SORT_REGULAR);
     }
 
     /**
@@ -852,6 +884,17 @@ class FormBuilder
         array_set($this->options, $key, $value);
 
         return $this;
+    }
+
+    /**
+     * Return if the form has an option.
+     *
+     * @param $key
+     * @return bool
+     */
+    public function hasOption($key)
+    {
+        return array_key_exists($key, $this->options);
     }
 
     /**
@@ -1503,4 +1546,36 @@ class FormBuilder
     {
         return $this->readOnly;
     }
+
+    /**
+     * Set the parent.
+     *
+     * @param FormBuilder $parent
+     * @return $this
+     */
+    public function setParentBuilder(FormBuilder $parent)
+    {
+        $this->parentBuilder = $parent;
+
+        return $this;
+    }
+    /**
+     * Get the parent.
+     *
+     * @return FormBuilder|null
+     */
+    public function getParentBuilder()
+    {
+        return $this->parentBuilder;
+    }
+    /**
+     * Return if has parent.
+     *
+     * @return bool
+     */
+    public function isChildForm()
+    {
+        return (bool)$this->parentBuilder;
+    }
+
 }
