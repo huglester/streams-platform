@@ -273,8 +273,12 @@ class Asset
             return $this;
         }
 
-        if ($this->config->get('app.debug') && $this->collectionHasFilter($collection, ['ignore'])) {
-            throw new \Exception("Asset [{$file}] does not exist!");
+        if (
+            $this->config->get('app.debug') &&
+            !$this->collectionHasFilter($collection, 'ignore') &&
+            !in_array('ignore', $filters)
+        ) {
+            \Log::error("Asset [{$file}] requested by [{$collection}] does not exist!");
         }
     }
 
@@ -491,6 +495,38 @@ class Asset
                 return $this->url($path, [], $attributes, $secure);
             },
             $this->paths($collection, $filters)
+        );
+    }
+
+    /**
+     * Return an array of inline assets from a collection.
+     *
+     * Instead of combining the collection contents into a single
+     * dump, returns an array of individual processed dumps instead.
+     *
+     * @param        $collection
+     * @param  array $additionalFilters
+     * @return array
+     */
+    public function inlines($collection, array $additionalFilters = [])
+    {
+        if (!isset($this->collections[$collection])) {
+            return [];
+        }
+
+        return array_filter(
+            array_map(
+                function ($file, $filters) use ($additionalFilters) {
+
+                    $filters = array_filter(array_unique(array_merge($filters, $additionalFilters, ['noversion'])));
+
+                    return file_get_contents(
+                        $this->paths->realPath('public::' . ltrim($this->path($file, $filters), '/\\'))
+                    );
+                },
+                array_keys($this->collections[$collection]),
+                array_values($this->collections[$collection])
+            )
         );
     }
 
